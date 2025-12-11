@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+
+  /* brand Swiper (opsional) */
+  --swiper-navigation-color: #D6336C;
+  --swiper-pagination-color: #D6336C;
+
+  /* jadikan Montserrat default (di-inject dari layout.js) */
+  font-family: var(--font-montserrat), ui-sans-serif, system-ui, -apple-system,
+    Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  /* biarkan Tailwind pakai var(--font-montserrat) via tailwind.config.js */
+  --font-sans: var(--font-montserrat);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+/* JANGAN set font-family di body (supaya ikut var(--font-montserrat)) */
+body {
+  background: var(--background);
+  color: var(--foreground);
+  min-height: 100dvh;
+  margin: 0;
+  overscroll-behavior: none;
+}
+
+/* Utility untuk screen penuh */
+.app-screen {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Buttons */
+.btn-primary {
+  @apply w-full py-3 rounded-lg font-semibold text-white bg-[#D6336C] hover:bg-[#FF4F8D];
+}
+
+.btn-outline {
+  @apply w-full py-3 rounded-lg font-semibold border border-[#D6336C] text-[#D6336C] active:bg-white;
+}
+
+/* Inputs */
+.input {
+  @apply w-full px-3 py-2 border-[#929292] rounded-lg;
+}

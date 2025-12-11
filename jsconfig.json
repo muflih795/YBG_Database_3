@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": { "@/*": ["*"] },
+    "checkJs": false,
+    "types": []
+  },
+  "typeAcquisition": { "enable": false },
+  "include": ["next-env.d.ts", "**/*.js", "**/*.jsx"],
+  "exclude": ["node_modules", ".next"]
+}
