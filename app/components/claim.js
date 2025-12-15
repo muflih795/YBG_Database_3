@@ -17,15 +17,14 @@ function generateVoucherCode(length = 10) {
   return out;
 }
 
-// ⚠️ default export, supaya bisa di-import:  import Claim from "../components/claim";
+// ⚠️ default export, supaya bisa di-import: import Claim from "../components/claim";
 export default function Claim({
   reward,
   onClaimed,
   points: parentPoints = 0,
   userId,
 }) {
-  if (!reward) return null;
-
+  // 🧠 Semua HOOKS selalu dipanggil, tanpa kondisi
   const [processing, setProcessing] = useState(false);
   const [localError, setLocalError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
@@ -48,6 +47,7 @@ export default function Claim({
   const hasStock = stock > 0;
 
   const canClaim = useMemo(() => {
+    // kalau reward tidak ada → otomatis tidak bisa klaim
     if (!reward) return false;
     if (!isLoggedIn) return false;
     if (!hasStock) return false;
@@ -64,7 +64,13 @@ export default function Claim({
     : "";
 
   const handleClaim = async () => {
-    if (processing || !reward) return;
+    // tetap jaga guard di sini
+    if (processing) return;
+    if (!reward) return;
+    if (!userId) {
+      setLocalError("Kamu harus login untuk klaim reward.");
+      return;
+    }
 
     setLocalError("");
     setSuccessMsg("");
