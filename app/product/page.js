@@ -5,12 +5,12 @@ import Image from "next/image";
 import Link from "next/link";
 import BottomNavigation from "../components/bottomnav";
 import BannerCarousel from "../components/bannerCarousel";
-import HorizontalProductList from "../components/productCard";
 import { supabaseBrowser } from "@/lib/supabaseBrowser";
-const supabase = supabaseBrowser;
 import { toPublicUrl } from "@/lib/storage";
 import { fetchCategories } from "@/lib/categories";
 import { fetchBrands } from "@/lib/repos";
+
+const supabase = supabaseBrowser;
 
 const formatIDR = (v) =>
   new Intl.NumberFormat("id-ID", {
@@ -27,13 +27,12 @@ export default function ProductAllPage() {
   const [q, setQ] = useState("");
 
   useEffect(() => {
-    // Produk
     (async () => {
       try {
         const { data, error } = await supabase
           .from("products")
           .select(
-            "id,nama,brand_slug,kategori,price,image_url,image_urls,deskripsi,is_active,status,date_created"
+            "id,nama,brand_slug,kategori,price,image_url,image_urls,deskripsi,is_active,status,stock,date_created"
           )
           .eq("status", "published")
           .eq("is_active", true)
@@ -47,7 +46,6 @@ export default function ProductAllPage() {
       }
     })();
 
-    // Kategori
     (async () => {
       try {
         const list = await fetchCategories();
@@ -57,7 +55,6 @@ export default function ProductAllPage() {
       }
     })();
 
-    // Brand
     (async () => {
       try {
         const list = await fetchBrands();
@@ -68,20 +65,16 @@ export default function ProductAllPage() {
     })();
   }, []);
 
-  // filter client-side by q
   const filtered =
     Array.isArray(items) && q.trim()
       ? items.filter((p) =>
-          (p?.nama || "")
-            .toLowerCase()
-            .includes(q.trim().toLowerCase())
+          (p?.nama || "").toLowerCase().includes(q.trim().toLowerCase())
         )
       : items;
 
   return (
     <div className="min-h-[100dvh] bg-neutral-100 flex justify-center">
       <main className="w-full min-h-[100dvh] bg-white md:max-w-[430px] md:shadow md:border flex flex-col overflow-y-auto pb-[80px]">
-        {/* Header */}
         <div className="sticky top-0 bg-white px-4 py-3 shadow flex items-center justify-between gap-3 z-10">
           <h1 className="text-[#D6336C] font-semibold">Produk</h1>
           <Link
@@ -99,36 +92,20 @@ export default function ProductAllPage() {
           </Link>
         </div>
 
-        {/* Banner */}
         <div className="w-full">
           <BannerCarousel />
         </div>
 
-        {/* Search Produk – style sama dengan halaman Brand */}
         <div className="px-4 py-3">
           <input
             placeholder="Produk, Jenis Produk..."
-            className="
-              w-full
-              rounded-full
-              border border-gray-200
-              bg-white
-              px-4 py-2
-              text-sm
-              placeholder:text-gray-400
-              focus:outline-none
-              focus:ring-1
-              focus:ring-[#D6336C]
-            "
+            className="w-full rounded-full border border-gray-200 bg-white px-4 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#D6336C]"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             autoComplete="off"
             name="search"
             inputMode="search"
             spellCheck={false}
-            data-lpignore="true"
-            data-form-type="other"
-            suppressHydrationWarning
           />
         </div>
 
@@ -144,10 +121,7 @@ export default function ProductAllPage() {
           {brands === null ? (
             <div className="flex gap-3 overflow-x-auto no-scrollbar">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="w-[80px] h-[100px] rounded-2xl bg-gray-100 animate-pulse shrink-0"
-                />
+                <div key={i} className="w-[80px] h-[100px] rounded-2xl bg-gray-100 animate-pulse shrink-0" />
               ))}
             </div>
           ) : (
@@ -155,18 +129,12 @@ export default function ProductAllPage() {
               {brands
                 .filter((b) => b?.slug)
                 .map((b, i) => {
-                  const hasLogo =
-                    typeof b?.logoSrc === "string" &&
-                    b.logoSrc.trim().length > 0;
-                  const logo = hasLogo
-                    ? b.logoSrc
-                    : "/brand/brand-placeholder.svg";
+                  const logo =
+                    typeof b?.logoSrc === "string" && b.logoSrc.trim()
+                      ? b.logoSrc
+                      : "/brand/brand-placeholder.svg";
                   return (
-                    <Link
-                      key={b.id}
-                      href={`/product/${b.slug}`}
-                      className="w-[80px] shrink-0 snap-start"
-                    >
+                    <Link key={b.id} href={`/product/${b.slug}`} className="w-[80px] shrink-0 snap-start">
                       <div className="w-[80px] h-[80px] rounded-2xl border bg-white grid place-items-center overflow-hidden">
                         <Image
                           src={logo}
@@ -177,9 +145,7 @@ export default function ProductAllPage() {
                           priority={i === 0}
                         />
                       </div>
-                      <p className="text-center text-[#B6B6B6] text-xs mt-1">
-                        {b?.name || "Brand"}
-                      </p>
+                      <p className="text-center text-[#B6B6B6] text-xs mt-1">{b?.name || "Brand"}</p>
                     </Link>
                   );
                 })}
@@ -190,9 +156,7 @@ export default function ProductAllPage() {
         {/* Kategori */}
         <section className="px-4 pb-2">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-base font-semibold text-[#D6336C]">
-              Kategori
-            </h2>
+            <h2 className="text-base font-semibold text-[#D6336C]">Kategori</h2>
           </div>
 
           {cats === null ? (
@@ -236,26 +200,21 @@ export default function ProductAllPage() {
         {filtered === null ? (
           <div className="px-4 py-6 grid grid-cols-2 gap-3">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-[210px] bg-gray-100 animate-pulse rounded-xl"
-              />
+              <div key={i} className="h-[210px] bg-gray-100 animate-pulse rounded-xl" />
             ))}
           </div>
         ) : error ? (
-          <div className="px-4 py-10 text-center text-sm text-rose-600">
-            Error: {error}
-          </div>
+          <div className="px-4 py-10 text-center text-sm text-rose-600">Error: {error}</div>
         ) : filtered.length === 0 ? (
-          <div className="px-4 py-10 text-center text-sm text-gray-600">
-            Belum ada produk.
-          </div>
+          <div className="px-4 py-10 text-center text-sm text-gray-600">Belum ada produk.</div>
         ) : (
           <div className="grid grid-cols-2 gap-3 px-4 pb-6">
             {filtered.map((p, i) => {
-              const img =
-                toPublicUrl("Public", p.image_url) || "/placeholder.png";
+              const img = toPublicUrl("Public", p.image_url) || "/placeholder.png";
               const detailSlug = p.brand_slug || p.kategori || "all";
+              const stock = Number.isFinite(p?.stock) ? p.stock : null;
+              const soldOut = stock !== null && stock <= 0;
+
               return (
                 <Link
                   key={p.id}
@@ -271,15 +230,22 @@ export default function ProductAllPage() {
                       className="object-cover"
                       priority={i === 0}
                     />
+                    {soldOut && (
+                      <div className="absolute inset-0 bg-black/40 grid place-items-center">
+                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-white text-gray-800">
+                          Habis
+                        </span>
+                      </div>
+                    )}
                   </div>
+
                   <div className="p-2">
-                    <p className="text-[13px] text-black line-clamp-2">
-                      {p.nama}
-                    </p>
+                    <p className="text-[13px] text-black line-clamp-2">{p.nama}</p>
                     {typeof p.price === "number" && (
-                      <p className="text-[12px] text-[#D6336C] font-semibold mt-1">
-                        {formatIDR(p.price)}
-                      </p>
+                      <p className="text-[12px] text-[#D6336C] font-semibold mt-1">{formatIDR(p.price)}</p>
+                    )}
+                    {stock !== null && (
+                      <p className="text-[11px] text-gray-500 mt-1">Stok: {stock > 0 ? stock : "Habis"}</p>
                     )}
                   </div>
                 </Link>

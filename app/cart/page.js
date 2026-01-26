@@ -7,9 +7,12 @@ import Link from "next/link";
 import { supabaseBrowser } from "@/lib/supabaseBrowser";
 const supabase = supabaseBrowser;
 
-
 function formatIDR(v) {
-  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(v || 0);
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(v || 0);
 }
 
 function tableBySource(source) {
@@ -23,7 +26,7 @@ export default function CartPage() {
   const [rows, setRows] = useState([]);
   const [error, setError] = useState("");
 
-  const waNumber = process.env.NEXT_PUBLIC_SA_WA_NUMBER ;
+  const waNumber = process.env.NEXT_PUBLIC_SA_WA_NUMBER;
 
   const subtotal = useMemo(
     () =>
@@ -85,7 +88,7 @@ export default function CartPage() {
         const ids = [...new Set(bySource["ybg_exclusive"])];
         const { data, error } = await supabase
           .from("ybg_exclusive")
-          .select("id,nama,price,image_url,status,is_active,brand_slug,kategori,deskripsi")
+          .select("id,nama,price,image_url,status,is_active,stock,brand_slug,kategori,deskripsi")
           .in("id", ids);
         if (error) throw error;
         for (const p of data || []) productsMap.set(`ybg_exclusive:${p.id}`, p);
@@ -95,7 +98,7 @@ export default function CartPage() {
         const ids = [...new Set(bySource["products"])];
         const { data, error } = await supabase
           .from("products")
-          .select("id,nama,price,image_url,status,is_active,brand_slug,kategori,deskripsi")
+          .select("id,nama,price,image_url,status,is_active,stock,brand_slug,kategori,deskripsi")
           .in("id", ids);
         if (error) throw error;
         for (const p of data || []) productsMap.set(`products:${p.id}`, p);
@@ -129,6 +132,13 @@ export default function CartPage() {
     try {
       const row = rows.find((r) => r.cart_id === cartId);
       if (!row) return;
+
+      // batasi qty sesuai stok (kalau ada)
+      const maxStock = Number.isFinite(row?.product?.stock) ? row.product.stock : null;
+      if (maxStock !== null && nextQty > maxStock) {
+        nextQty = maxStock;
+        setError("Jumlah melebihi stok yang tersedia.");
+      }
 
       if (nextQty <= 0) return remove(cartId);
 

@@ -2,7 +2,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabaseBrowser";
-const supabase = supabaseBrowser;                        
+
+const supabase = supabaseBrowser;
 
 const PHONE_LOGIN_ENABLED = false;
 
@@ -12,6 +13,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
@@ -33,6 +35,28 @@ export default function LoginPage() {
     }
   }, []);
 
+  useEffect(() => {
+    // menerima pesan dari popup callback
+    const onMessage = async (event) => {
+      if (event.origin !== window.location.origin) return;
+      const data = event.data;
+      if (!data || data.type !== "supabase-oauth") return;
+
+      if (data.success) {
+        try {
+          await supabase.auth.getSession();
+        } catch {}
+        router.replace(data.next || "/home");
+      } else {
+        setMsg(data.error || "Login Google gagal.");
+        setGoogleLoading(false);
+      }
+    };
+
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [router]);
+
   const isEmail = (v) => /\S+@\S+\.\S+/.test(v);
   const isPhone = (v) => /^\+?\d{8,15}$/.test((v || "").replace(/[\s-]/g, ""));
   function normalizePhone(v) {
@@ -44,9 +68,63 @@ export default function LoginPage() {
     return "+" + x;
   }
 
+  function openCenteredPopup(url, title = "Login Google") {
+    const w = 520;
+    const h = 650;
+    const y = window.top.outerHeight / 2 + window.top.screenY - h / 2;
+    const x = window.top.outerWidth / 2 + window.top.screenX - w / 2;
+    return window.open(
+      url,
+      title,
+      `toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=yes, resizable=yes, copyhistory=no, width=${w}, height=${h}, top=${y}, left=${x}`
+    );
+  }
+
+  async function onGoogleLogin() {
+    if (googleLoading || loading) return;
+    setMsg("");
+    setGoogleLoading(true);
+
+    try {
+      const next = "/home";
+      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(
+        next
+      )}&popup=1`;
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true, // ✅ supaya dapat data.url, lalu kita open popup manual
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.url) throw new Error("URL OAuth tidak tersedia.");
+
+      const win = openCenteredPopup(data.url, "Login Google");
+      if (!win) {
+        setGoogleLoading(false);
+        setMsg("Popup diblokir browser. Izinkan pop-up lalu coba lagi.");
+        return;
+      }
+
+      // fallback kalau user nutup popup manual
+      const timer = setInterval(() => {
+        if (win.closed) {
+          clearInterval(timer);
+          setGoogleLoading(false);
+        }
+      }, 400);
+    } catch (e) {
+      setGoogleLoading(false);
+      setMsg(e?.message || "Gagal memulai login Google.");
+    }
+  }
+
   async function onSubmit(e) {
     e.preventDefault();
-    if (loading) return;
+    if (loading || googleLoading) return;
     setMsg("");
 
     const id = identifier.trim();
@@ -68,7 +146,7 @@ export default function LoginPage() {
         ? { email: id, password }
         : { phone: normalizePhone(id), password };
 
-      const { data, error } = await supabase.auth.signInWithPassword(payload);
+      const { error } = await supabase.auth.signInWithPassword(payload);
       if (error) throw error;
 
       await supabase.auth.refreshSession();
@@ -105,11 +183,27 @@ export default function LoginPage() {
           <img src="/logo_ybg.png" alt="YBG" className="w-28 h-28" />
           <h1 className="text-black text-[22px] font-bold">Masuk ke Akun YBG</h1>
           <p className="text-sm text-gray-600 mt-1 text-center">
-            Gunakan <b>email</b> dan <b>password</b>.
+            Gunakan <b>email</b> dan <b>password</b>, atau masuk dengan Google.
           </p>
         </div>
 
-        <form onSubmit={onSubmit} className="mt-6 space-y-4">
+        {/* ✅ Google Popup Login */}
+        <button
+          type="button"
+          onClick={onGoogleLogin}
+          disabled={googleLoading || loading}
+          className="mt-6 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 font-semibold text-black hover:bg-gray-50 disabled:opacity-60"
+        >
+          {googleLoading ? "Membuka Google..." : "Masuk dengan Google"}
+        </button>
+
+        <div className="my-4 flex items-center gap-3">
+          <div className="h-px flex-1 bg-gray-200" />
+          <span className="text-xs text-gray-500">atau</span>
+          <div className="h-px flex-1 bg-gray-200" />
+        </div>
+
+        <form onSubmit={onSubmit} className="space-y-4">
           <Input
             label="Email atau Nomor HP"
             placeholder="you@example.com atau +62812xxxx"
@@ -118,7 +212,9 @@ export default function LoginPage() {
           />
 
           {typingPhoneWhileDisabled && (
-            <p className="text-xs text-rose-600 -mt-2">Phone logins are disabled — gunakan email.</p>
+            <p className="text-xs text-rose-600 -mt-2">
+              Phone logins are disabled — gunakan email.
+            </p>
           )}
 
           <label className="block text-sm">
@@ -151,7 +247,7 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={loading || typingPhoneWhileDisabled}
+            disabled={loading || googleLoading || typingPhoneWhileDisabled}
             className="w-full bg-[#D6336C] text-white font-semibold rounded-lg py-3 disabled:opacity-60"
           >
             {loading ? "Memproses..." : "Masuk"}
@@ -159,7 +255,11 @@ export default function LoginPage() {
 
           <div className="text-center text-sm text-gray-600 mt-4">
             Belum punya akun?{" "}
-            <button type="button" onClick={() => router.push("/regist")} className="text-[#D6336C] font-semibold">
+            <button
+              type="button"
+              onClick={() => router.push("/regist")}
+              className="text-[#D6336C] font-semibold"
+            >
               Daftar
             </button>
           </div>

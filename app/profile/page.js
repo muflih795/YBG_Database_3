@@ -6,7 +6,6 @@ import BottomNavigation from "../components/bottomnav";
 import { supabaseBrowser } from "@/lib/supabaseBrowser";
 const supabase = supabaseBrowser;
 
-
 const DEFAULT_PROFILE = {
   nama: "",
   phone: "",
@@ -18,6 +17,7 @@ const DEFAULT_PROFILE = {
 export default function ProfilePage() {
   const [form, setForm] = useState(DEFAULT_PROFILE);
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // ✅ NEW
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
   const [userId, setUserId] = useState(null);
@@ -35,10 +35,7 @@ export default function ProfilePage() {
       const u = data.user;
       setUserId(u.id);
 
-      const nama =
-        u.user_metadata?.full_name ||
-        u.user_metadata?.name ||
-        "";
+      const nama = u.user_metadata?.full_name || u.user_metadata?.name || "";
       const phone = u.user_metadata?.phone || "";
       const gender = u.user_metadata?.gender || "";
       const birth = u.user_metadata?.birth || "";
@@ -79,6 +76,7 @@ export default function ProfilePage() {
       if (error) throw error;
 
       setPassword("");
+      setShowPassword(false);
       setMsg("Perubahan berhasil disimpan ✅");
     } catch (err) {
       console.error("update profile error:", err);
@@ -115,7 +113,12 @@ export default function ProfilePage() {
           <div className="px-4 mt-3">
             <div className="rounded-xl border border-pink-100 bg-white p-3 flex items-center gap-3 shadow-sm">
               <div className="relative w-12 h-12 overflow-hidden rounded-full bg-pink-50">
-                <Image src="/avatar.png" alt="avatar" fill className="object-cover" />
+                <Image
+                  src="/avatar.png"
+                  alt="avatar"
+                  fill
+                  className="object-cover"
+                />
               </div>
               <div className="leading-tight">
                 <p className="text-[15px] font-semibold text-black">
@@ -163,14 +166,31 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <Input
-              type="password"
-              label="Ubah Password (opsional)"
-              placeholder="Isi jika ingin mengubah password"
-              name="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
+            {/* ✅ Password with "Lihat" button like screenshot */}
+            <label className="block">
+              <span className="block text-[13px] text-black mb-2">
+                Ubah Password (opsional)
+              </span>
+
+              <div className="flex items-stretch gap-2">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Isi jika ingin mengubah password"
+                  name="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="flex-1 rounded-lg border border-[#E5E7EB] px-3 py-3 text-[14px] text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-200"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="min-w-[72px] rounded-lg border border-[#E5E7EB] px-4 text-[14px] font-semibold text-[#D6336C] hover:bg-pink-50 transition"
+                >
+                  {showPassword ? "Tutup" : "Lihat"}
+                </button>
+              </div>
+            </label>
           </div>
 
           <SectionTitle title="Informasi Kontak" />
@@ -194,7 +214,7 @@ export default function ProfilePage() {
             />
           </div>
 
-          {/*Tombol simpan */}
+          {/* Tombol simpan */}
           <div className="px-4 mt-5 space-y-3">
             {msg && (
               <div className="mb-3 text-[12px] text-center text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg py-2">
@@ -209,7 +229,7 @@ export default function ProfilePage() {
               {saving ? "Menyimpan…" : "Simpan Perubahan"}
             </button>
 
-            {/*Tombol Logout*/}
+            {/* Tombol Logout */}
             {userId && (
               <button
                 type="button"
@@ -228,7 +248,6 @@ export default function ProfilePage() {
   );
 }
 
-
 function SectionTitle({ title }) {
   return (
     <div className="px-4 mt-5 mb-3">
@@ -243,7 +262,9 @@ function SectionTitle({ title }) {
 function Input({ label, ...props }) {
   return (
     <label className="block">
-      {label && <span className="block text-[13px] text-black mb-2">{label}</span>}
+      {label && (
+        <span className="block text-[13px] text-black mb-2">{label}</span>
+      )}
       <input
         {...props}
         className="w-full rounded-lg border border-[#E5E7EB] px-3 py-3 text-[14px] text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-200"

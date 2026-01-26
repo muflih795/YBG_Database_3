@@ -140,7 +140,7 @@ export default function Beranda() {
       <main className="w-full min-h-[100dvh] bg-white flex flex-col md:max-w-[430px] md:shadow md:border overflow-y-auto pb-[80px]">
         {/* Top bar */}
         <div className="flex items-center justify-between bg-white shadow p-4 sticky top-0 z-10">
-          <h2 className="text-[#D6336C] p-5 py-3">Hi, {name}</h2>
+          <h2 className="text-[#D6336C] p-5 py-3">Dear, {name}</h2>
 
           <div className="flex items-center gap-2">
             <Image
@@ -151,7 +151,7 @@ export default function Beranda() {
               className="w-8 h-8"
             />
             <div className="leading-tight text-[#D6336C] text-sm">
-              <p>YB Tier Kamu</p>
+              <p>YBG Tier Kamu</p>
               <h2 className="font-bold">{tier}</h2>
             </div>
           </div>
