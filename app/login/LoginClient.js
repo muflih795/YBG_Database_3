@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabaseBrowser";
 
@@ -10,6 +10,10 @@ const PHONE_LOGIN_ENABLED = false;
 
 export default function LoginClient() {
   const router = useRouter();
+
+  const popupRef = useRef(null);
+  const pollRef = useRef(null);
+
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -37,16 +41,17 @@ export default function LoginClient() {
     }
   }, []);
 
+  // ✅ Optional: tetap terima postMessage kalau same-origin (atau kalau kamu mau longgarkan)
   useEffect(() => {
     const onMessage = async (event) => {
-      if (event.origin !== window.location.origin) return;
       const data = event.data;
       if (!data || data.type !== "supabase-oauth") return;
 
       if (data.success) {
-        try {
-          await supabase.auth.getSession();
-        } catch {}
+        setGoogleLoading(false);
+        try { await supabase.auth.getSession(); } catch {}
+        // tutup popup kalau masih kebuka
+        try { popupRef.current?.close?.(); } catch {}
         router.replace(data.next || "/home");
       } else {
         setMsg(data.error || "Login Google gagal.");
@@ -82,6 +87,44 @@ export default function LoginClient() {
     );
   }
 
+  // ✅ fungsi untuk stop polling
+  function stopPolling() {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }
+
+  // ✅ paling penting: polling session + close popup + redirect
+  function startSessionPolling(next = "/home") {
+    stopPolling();
+
+    pollRef.current = setInterval(async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        const session = data?.session;
+
+        // kalau sudah ada session -> login sukses
+        if (session) {
+          stopPolling();
+          setGoogleLoading(false);
+
+          try { popupRef.current?.close?.(); } catch {}
+          router.replace(next);
+          return;
+        }
+
+        // kalau popup ditutup user -> stop
+        if (popupRef.current && popupRef.current.closed) {
+          stopPolling();
+          setGoogleLoading(false);
+        }
+      } catch {
+        // kalau error, biarin polling lanjut
+      }
+    }, 500);
+  }
+
   async function onGoogleLogin() {
     if (googleLoading || loading) return;
     setMsg("");
@@ -89,11 +132,17 @@ export default function LoginClient() {
 
     try {
       const next = "/home";
-      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}&popup=1`;
+
+      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(
+        next
+      )}&popup=1`;
 
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo, skipBrowserRedirect: true },
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true,
+        },
       });
 
       if (error) throw error;
@@ -106,12 +155,10 @@ export default function LoginClient() {
         return;
       }
 
-      const timer = setInterval(() => {
-        if (win.closed) {
-          clearInterval(timer);
-          setGoogleLoading(false);
-        }
-      }, 400);
+      popupRef.current = win;
+
+      // ✅ ini yang bikin auto close + auto redirect meskipun beda domain
+      startSessionPolling(next);
     } catch (e) {
       setGoogleLoading(false);
       setMsg(e?.message || "Gagal memulai login Google.");
@@ -164,7 +211,8 @@ export default function LoginClient() {
     router.push(url);
   }
 
-  const typingPhoneWhileDisabled = !PHONE_LOGIN_ENABLED && !isEmail(identifier) && isPhone(identifier);
+  const typingPhoneWhileDisabled =
+    !PHONE_LOGIN_ENABLED && !isEmail(identifier) && isPhone(identifier);
 
   return (
     <div className="min-h-[100dvh] bg-neutral-100">
@@ -201,7 +249,9 @@ export default function LoginClient() {
           />
 
           {typingPhoneWhileDisabled && (
-            <p className="text-xs text-rose-600 -mt-2">Phone logins are disabled — gunakan email.</p>
+            <p className="text-xs text-rose-600 -mt-2">
+              Phone logins are disabled — gunakan email.
+            </p>
           )}
 
           <label className="block text-sm">
@@ -242,7 +292,11 @@ export default function LoginClient() {
 
           <div className="text-center text-sm text-gray-600 mt-4">
             Belum punya akun?{" "}
-            <button type="button" onClick={() => router.push("/regist")} className="text-[#D6336C] font-semibold">
+            <button
+              type="button"
+              onClick={() => router.push("/regist")}
+              className="text-[#D6336C] font-semibold"
+            >
               Daftar
             </button>
           </div>
