@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 
-export async function GET(req: Request) {
+export async function GET(req) {
   const url = new URL(req.url);
 
   const code = url.searchParams.get("code");
@@ -12,8 +12,6 @@ export async function GET(req: Request) {
   const openerOrigin = url.searchParams.get("openerOrigin") || url.origin;
 
   if (!code) {
-    // kalau ga ada code, jangan lanjut. biasanya berarti redirect bukan pkce/code flow.
-    // Tapi dengan SSR flow ini, normalnya selalu ada code.
     if (popup) {
       const html = `<!doctype html>
 <html><body>
@@ -57,7 +55,9 @@ Login gagal: ${error.message}
       return new Response(html, { headers: { "content-type": "text/html" } });
     }
 
-    return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(error.message)}`, url.origin));
+    return NextResponse.redirect(
+      new URL(`/login?error=${encodeURIComponent(error.message)}`, url.origin)
+    );
   }
 
   // sukses → cookie sudah ke-set oleh createServerClient
